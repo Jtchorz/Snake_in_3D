@@ -1,5 +1,4 @@
-#include <stdint.h>
-#include "library.h"
+#include "led_ws218.h"
 
 extern void print(char *);
 extern void print_dec(unsigned int);
