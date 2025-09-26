@@ -1,3 +1,4 @@
+#include "dtekv-lib.h"
 int main(){
-    print
+    print("ajajaj");
 }
