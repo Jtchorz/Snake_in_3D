@@ -6,3 +6,5 @@
 *.bin
 *.txt
 *.lds
+dtekv-lib.c
+dtekv-lib.h
