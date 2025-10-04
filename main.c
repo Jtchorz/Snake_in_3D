@@ -14,6 +14,7 @@ void spawn_berry();
 void init();
 void timer_init();
 char snake_check();
+void snake_init();
 
 //structs:
 typedef struct {
@@ -26,12 +27,14 @@ typedef struct {
 volatile int timeoutcount = 0;
 color cube[5][5][5];
 pos snake[125];
+int snake_len;
 pos berry;
+char button;
 
 //how to define colors:  (the struct is defined in led_ws218.h file) 
-color white = {1,1,1};
+color white= {1,1,1};
 color black={0,0,0};
-color green={0,1,0};
+color snake_color={0,1,0};
 
 //functions:
 
@@ -55,6 +58,57 @@ void poll_buttons(){
     return;
 }
 void snake_upd(){
+    pos head = snake[0];
+    //figure out new head position
+    switch (button){
+        case 'u':
+            head.z++;
+            if(head.z > 4)
+                head.z = 0;
+            break;
+        case 'd':
+            head.z--;
+            if(head.z < 0)
+                head.z = 4;
+            break;
+
+        case 'r':
+            head.y++;
+            if(head.y > 4)
+                head.y = 0;
+            break;
+        case 'l':
+            head.y--;
+            if(head.y < 0)
+                head.y = 4;
+            break;
+
+        case 'f':
+            head.x++;
+            if(head.x > 4)
+                head.x = 0;
+            break;
+        case 'b':
+            head.x--;
+            if(head.x < 0)
+                head.x = 4;
+            break;
+    };
+    //we can make it the color now, as it doesnt matter, it updates when timeout
+    cube[head.x][head.y][head.z] = snake_color;
+    //make it just longer,we can shorten it down after we check for berry
+    for(int i = snake_len; i > 0; i--)
+        snake[i] = snake[i-1];
+    snake[0] = head;
+    
+    if((head.x == berry.x)&&(head.y == berry.y)&&(head.z == berry.z)){
+        spawn_berry();  //create a new one I assume this lights it up
+        snake_len++;   //increase snake length
+    }
+    else{
+        cube[snake[snake_len].x][snake[snake_len].y][snake[snake_len].z] = black;  //turn of the led for tail
+        snake[snake_len] = (pos){0,0,0};  //zero it to be explicit
+    }
     return;
 }
 void spawn_berry(){
@@ -66,9 +120,22 @@ char snake_check(){
 }
 void init(){
     init_led();
+    snake_init();
     timer_init();
     enable_interrupts();
     return;
+}
+
+void snake_init(){
+    //head is at 0, for easier code later
+    snake_len = 3;
+    snake[2] = (pos){0, 0, 0};
+    snake[1] = (pos){0, 1, 0};
+    snake[0] = (pos){0, 2, 0};
+    //already light the leds so it cna stand for a sec
+    cube[0][0][0] = snake_color;
+    cube[0][1][0] = snake_color;
+    cube[0][2][0] = snake_color;
 }
 
 void timer_init(){
