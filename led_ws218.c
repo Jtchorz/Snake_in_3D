@@ -9,6 +9,8 @@ extern void print_dec(unsigned int);
                 //11 instead of 12 cuz clock is one cycle more
                 //we aim for 8 instructions, so that we have a lot of space for overshoot
 
+void init_timer();
+
 volatile int* TMR1_flag = (volatile int*) 0x04000020;  //for checking if timer did done
 
 volatile int* gpio1_data = (volatile int*) GPIO_address;
@@ -90,24 +92,31 @@ void singleLed_sendColor(uint8_t Red, uint8_t Green, uint8_t Blue, uint8_t brigh
 
 }
 
-void colour_it(uint8_t BUFFER[][3], int num_leds)
-{
-    for (int i = 0; i < num_leds; i++) {
-        singleLed_sendColor(BUFFER[i][0], BUFFER[i][1], BUFFER[i][2], BRIGHT);
-    }
-    //we can delay as long as we want >50us here, the leds will reset,  but for lowest we did experimentally found 140 clock counts
-    int cnt = 0;
-    
-    while (cnt < 143)  //wait enough so it resets reliably
-    {
-        while(!(TMR1_flag[0] & 0x1));   //check this later, see if you can use your macros here
-        TMR1_flag[0] = 0;
-        cnt++;
+//variables for saving timers, better global, because colour_it doesnt use them.
+volatile uint16_t timer[4];
 
+void save_timer(){
+    volatile uint16_t* address = (volatile uint16_t*) 0x04000020;
+
+    for(int i = 0; i<4; i++)
+    {
+        timer[i]=(*address);
+        address+=2;
     }
-    
-    //print("sent");
+    return;
 }
+
+void restore_timer(){
+    volatile uint16_t* address = (volatile uint16_t*) 0x04000020;
+    
+    for(int i = 0; i<4; i++)
+    {
+        (*address)=timer[i];
+        address+=2;
+    }
+    return;
+}
+
 void init_timer(void)
 {
   volatile int* TMR1_PLow = (volatile int*) 0x04000028;
@@ -118,9 +127,30 @@ void init_timer(void)
 
   volatile int* TMR1_CTRL = (volatile int*) 0x04000024; //for starting and stopping timer
   TMR1_CTRL[0] = 0x6;  //start the timer in continous mode for better accuracy
-
   return;
 }
+
+void colour_it(uint8_t BUFFER[][3], int num_leds)
+{
+    //save previous timeout, and start our own timer
+    save_timer();
+    init_timer();
+
+    for (int i = 0; i < num_leds; i++) {
+        singleLed_sendColor(BUFFER[i][0], BUFFER[i][1], BUFFER[i][2], BRIGHT);
+    }
+    //we can delay as long as we want >50us here, the leds will reset,  but for lowest we did experimentally found 140 clock counts
+    int cnt = 0;
+    while (cnt < 143)  //wait enough so it resets reliably
+    {
+        while(!(TMR1_flag[0] & 0x1));   //check this later, see if you can use your macros here
+        TMR1_flag[0] = 0;
+        cnt++;
+    }
+
+    restore_timer();
+}
+
 void init_gpio(void)
 {
     volatile int* GPIO_dir = (volatile int*) (GPIO_address + 0x4);
@@ -128,19 +158,8 @@ void init_gpio(void)
 
 }
 
-void init_all(void)
+void init_led(void)
 {
-    init_timer();
     init_gpio();
-    print("initialised");
+    print("initialised \n");
 }
-/*int main(){
-    init_timer();
-    init_gpio();
-    BUFFER_LEDS[0][0] = 50;
-    BUFFER_LEDS[0][1] = 50;
-    BUFFER_LEDS[0][2] = 50;
-
-    colour_it(BUFFER_LEDS);
-
-}*/
