@@ -75,7 +75,7 @@ void SendBit(bool bit){
     }
 }
 
-void singleLed_sendColor(uint8_t Red, uint8_t Green, uint8_t Blue, uint8_t brightness){
+void singleLed_sendColor(uint8_t Red, uint8_t Green, uint8_t Blue){
     int i = 0;  
 
     for (i = 7; i >= 0; i--) {
@@ -108,7 +108,7 @@ void save_timer(){
 
 void restore_timer(){
     volatile uint16_t* address = (volatile uint16_t*) 0x04000020;
-    
+
     for(int i = 0; i<4; i++)
     {
         (*address)=timer[i];
@@ -130,20 +130,36 @@ void init_timer(void)
   return;
 }
 
-void colour_it(uint8_t BUFFER[][3], int num_leds)
+void colour_it(color BUFFER[5][5][5])
 {
     //save previous timeout, and start our own timer
     save_timer();
     init_timer();
 
-    for (int i = 0; i < num_leds; i++) {
-        singleLed_sendColor(BUFFER[i][0], BUFFER[i][1], BUFFER[i][2], BRIGHT);
+    uint8_t BUFFER2[125][3];
+
+//convert it to a single table, it isnt fast enough otherwise
+    for(int i = 0; i < 5; i++){
+        for(int j = 0; j < 5; j++){
+            for(int k = 0; k < 5; k++){
+                BUFFER2[(25*i)+(5*j)+k][0] = BUFFER[i][j][k].red;
+                BUFFER2[(25*i)+(5*j)+k][1] = BUFFER[i][j][k].green;
+                BUFFER2[(25*i)+(5*j)+k][2] = BUFFER[i][j][k].blue;
+            }
+        }
     }
-    //we can delay as long as we want >50us here, the leds will reset,  but for lowest we did experimentally found 140 clock counts
+
+//send it
+//pin_low();
+
+      for (int i = 0; i < 125; i++) {
+        singleLed_sendColor(BUFFER2[i][0], BUFFER2[i][1], BUFFER2[i][2]);
+    }
+//we can delay as long as we want >50us here, the leds will reset,  but for lowest we did experimentally found 140 clock counts
     int cnt = 0;
     while (cnt < 143)  //wait enough so it resets reliably
     {
-        while(!(TMR1_flag[0] & 0x1));   //check this later, see if you can use your macros here
+        while(!(TMR1_flag[0] & 0x1));   
         TMR1_flag[0] = 0;
         cnt++;
     }

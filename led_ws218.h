@@ -1,3 +1,10 @@
 #include <stdint.h>
 void init_led(void);
-void colour_it(uint8_t BUFFER[][3], int num_leds);
+
+typedef struct {
+    uint8_t red;
+    uint8_t green;
+    uint8_t blue;
+} color;
+
+void colour_it(color BUFFER[5][5][5]);
