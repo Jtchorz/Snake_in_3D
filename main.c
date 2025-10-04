@@ -1,6 +1,7 @@
 //inlcusions:
 #include "dtekv-lib.h"
 #include "led_ws218.h"
+#include <stdlib.h>
 #define FPS 1
 #define NUM_LEDS 125
 extern void enable_interrupts( void );
@@ -35,6 +36,7 @@ char button;
 color white= {1,1,1};
 color black={0,0,0};
 color snake_color={0,1,0};
+color berry_color={1,0,0};
 
 //functions:
 
@@ -112,6 +114,23 @@ void snake_upd(){
     return;
 }
 void spawn_berry(){
+    bool cross_out[125];
+    for(int i = 0; i < snake_len; i++)
+        cross_out[snake[i].x*25+5*snake[i].y]+[snake[i].z] = 1;
+
+    int random_number = rand() % (125-snake_len);
+    int p = 0;
+    for(int i = 0; i < 125; i++)
+        p += 1-cross_out[i];
+
+    berry.x = p/25;
+    p %= 25;
+    berry.y = p/5;
+    p %= 25;
+    berry.z = p;
+
+    cube[berry.x][berry.y][berry.z] = berry_color;
+    
     return;
 }
 char snake_check(){
@@ -146,7 +165,12 @@ void timer_init(){
   TMR1_PHigh[0] = (timeout >> 16) & 0xFFFF;
 
   volatile int* TMR1_CTRL = (volatile int*) 0x04000024; //for starting and stopping timer
-  TMR1_CTRL[0] = 0x5;  //start the timer, generating interrupts
+  TMR1_CTRL[0] = 0x5;  //start the timer, generating interruptsa
+
+  //also, initiate randomness here, cant be arsed to do better
+  volatile int* TMR1_SNAPLow = (volatile int*) 0x04000030;
+  (*TMR1_SNAPLow) = 0;
+  srand((*TMR1_SNAPLow));
   return;
 }
 
