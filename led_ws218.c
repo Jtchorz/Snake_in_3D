@@ -1,7 +1,7 @@
 #include "led_ws218.h"
 
 extern void print(char *);
-extern void print_dec(unsigned int);
+extern void print_dec(unsigned int);  //these are here just for testing
 
 #define BRIGHT 255
 #define GPIO_address 0x040000E0 //gpio no1
@@ -136,25 +136,32 @@ void colour_it(color BUFFER[5][5][5])
     save_timer();
     init_timer();
 
+    //new buffer because reading from 3d one is way too slow
     uint8_t BUFFER2[125][3];
 
-//convert it to a single table, it isnt fast enough otherwise
+    //convert it to a single table, it isnt fast enough otherwise
     for(int i = 0; i < 5; i++){
         for(int j = 0; j < 5; j++){
             for(int k = 0; k < 5; k++){
+                if(i%2 == 0){
                 BUFFER2[(25*i)+(5*j)+k][0] = BUFFER[i][j][k].red;
                 BUFFER2[(25*i)+(5*j)+k][1] = BUFFER[i][j][k].green;
                 BUFFER2[(25*i)+(5*j)+k][2] = BUFFER[i][j][k].blue;
+                }
+                else{
+                BUFFER2[(25*i)+(5*j)+k][0] = BUFFER[i][4-j][k].red;
+                BUFFER2[(25*i)+(5*j)+k][1] = BUFFER[i][4-j][k].green;
+                BUFFER2[(25*i)+(5*j)+k][2] = BUFFER[i][4-j][k].blue;
+                }
             }
         }
     }
 
-//send it
-//pin_low();
-
-      for (int i = 0; i < 125; i++) {
+    //send it
+    for (int i = 0; i < 125; i++) {
         singleLed_sendColor(BUFFER2[i][0], BUFFER2[i][1], BUFFER2[i][2]);
     }
+
 //we can delay as long as we want >50us here, the leds will reset,  but for lowest we did experimentally found 140 clock counts
     int cnt = 0;
     while (cnt < 143)  //wait enough so it resets reliably
