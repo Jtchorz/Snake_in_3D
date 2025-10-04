@@ -15,9 +15,18 @@ void init();
 void timer_init();
 char snake_check();
 
+//structs:
+typedef struct {
+    int x;
+    int y;
+    int z;
+} pos;
+
 //global variables:
 volatile int timeoutcount = 0;
 color cube[5][5][5];
+pos snake[125];
+pos berry;
 
 //how to define colors:  (the struct is defined in led_ws218.h file) 
 color white = {1,1,1};
@@ -77,11 +86,14 @@ void timer_init(){
 int main(){
     init();
     while(snake_check()){
-        if(timeoutcount >= 5)
+       /* if(timeoutcount >= 5)
             timeoutcount = 0;
 
         cube[0][0][timeoutcount] = green;  //so simple to do colors
+        */
         poll_buttons();
-        snake_upd();
+
+        if(timeoutcount == 24)
+            snake_upd();
     }
 }
