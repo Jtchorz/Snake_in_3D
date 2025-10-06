@@ -30,12 +30,16 @@ volatile uint8_t* flagbit = (volatile uint8_t*) 0x04000020;
 
 ////thi function is IMPORTANT if the timing is off stuff breaks ##################################################################################
 //#################################################################################################################################
-void SendBit(bool bit){
+__attribute__((always_inline)) inline void SendBit(char bit){
     
-  flag_reset();   //this is sure that inside the bits, we are actually in sync, not just seeing, oh the flagh is 1 and the timer is whenever
+  
     if(bit){
+        pin_low();
+        flag_reset();   //this is sure that inside the bits, we are actually in sync, not just seeing, oh the flagh is 1 and the timer is whenever
         wait_250();  //this actually is tripped when the timer flag is set, thanks to setup
         flag_reset(); 
+        wait_250();  //this actually is tripped when the timer flag is set, thanks to setup
+        flag_reset();
 
         pin_high(); 
 
@@ -53,40 +57,32 @@ void SendBit(bool bit){
     else
     {
         
-        //this is copy, but just in reverse, first high for one cycle, then high for two cycles
-
+        flag_reset();   //this is sure that inside the bits, we are actually in sync, not just seeing, oh the flagh is 1 and the timer is whenever
         wait_250();  //this actually is tripped when the timer flag is set, thanks to setup
-         
-        flag_reset();  //we have a bigger tolarance between diodes than inside, here is better
-
+        flag_reset(); 
+        wait_250();  //this actually is tripped when the timer flag is set, thanks to setup
+        flag_reset();
+        pin_low();
         pin_high();  
 
        // wait_250();  //just one cycle high
                         
         pin_low();
-
-        //and now we have to wait ~0.8ns, so we will execute two waits ~500ns which then makes at least 
-        //one instruction left to start next bit propably two
-        flag_reset();
-        wait_250();
-        flag_reset();
-        wait_250();
-        flag_reset();
     }
 }
 
-void singleLed_sendColor(uint8_t Red, uint8_t Green, uint8_t Blue){
-    int i = 0;  
 
-    for (i = 7; i >= 0; i--) {
+void singleLed_sendColor(char Red, char Green,char Blue){
+
+    for (int i = 7; i >= 0; i--) {
         SendBit((Green >> i) & 1);
     }
 
-    for (i = 7; i >= 0; i--) {
+    for (int i = 7; i >= 0; i--) {
         SendBit((Red >> i) & 1);
     }
 
-    for (i = 7; i >= 0; i--) {
+    for (int i = 7; i >= 0; i--) {
         SendBit((Blue >> i) & 1);
     }
 
@@ -142,7 +138,7 @@ void colour_it(color BUFFER[5][5][5])
     init_timer();
 
     //new buffer because reading from 3d one is way too slow
-    uint8_t BUFFER2[125][3];
+    char BUFFER2[125][3];
 
     //convert it to a single table, it isnt fast enough otherwise
     for(int i = 0; i < 5; i++){
@@ -161,6 +157,7 @@ void colour_it(color BUFFER[5][5][5])
             }
         }
     }
+    
 
     for (int i = 0; i < 125; i++) {
         singleLed_sendColor(BUFFER2[i][0], BUFFER2[i][1], BUFFER2[i][2]);
@@ -168,7 +165,7 @@ void colour_it(color BUFFER[5][5][5])
 
     //we can delay as long as we want >50us here, the leds will reset,  but for lowest we did experimentally found 140 clock counts
     volatile int cnt = 0;
-    pin_low();
+    
     while (cnt < 500) //wait enough so it resets reliably
     {
         wait_250();

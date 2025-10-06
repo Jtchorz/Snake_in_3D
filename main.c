@@ -48,8 +48,8 @@ void handle_interrupt(unsigned int cause){
     timeoutcount++;
     colour_it(cube);  //this should return the timer exactly the same
 
-   // colour_it(cube);  //this somehow elimintes the green flash, its the cleanest way I found.s
-    //colour_it(cube);
+    //colour_it(cube);  //this somehow elimintes the green flash, its the cleanest way I found.s
+   // colour_it(cube);
 
     TMR1_flag[0] = 0;
     TMR1_CTRL[0] = 0x5;  //start the timer back up again
@@ -147,8 +147,11 @@ void spawn_berry(){
     return;
 }
 char snake_check(){
-    volatile char a = 1;
-    return a;
+    for(int i = 1; i < snake_len; i++){
+        if((snake[0].x == snake[i].x) && (snake[0].y == snake[i].y) && (snake[0].z == snake[i].z))
+            return 0;
+    }
+    return 1;
 }
 
 
@@ -168,16 +171,20 @@ void init(){
 
 void snake_init(){
     //head is at 0, for easier code later
-    snake_len = 3;
-    snake[2] = (pos){0, 0, 0};
-    snake[1] = (pos){0, 1, 0};
-    snake[0] = (pos){0, 2, 0};
+    snake_len = 5;
+    snake[4] = (pos){0, 0, 0};
+    snake[3] = (pos){0, 1, 0};
+    snake[2] = (pos){0, 2, 0};
+    snake[1] = (pos){0, 3, 0};
+    snake[0] = (pos){0, 4, 0};
     //already light the leds so it cna stand for a sec
     cube[0][0][0] = snake_color;
     cube[0][1][0] = snake_color;
-    cube[0][2][0] = head_color;
+    cube[0][2][0] = snake_color;
+    cube[0][3][0] = snake_color;
+    cube[0][4][0] = head_color;
 
-    berry = (pos){3,2,0};
+    berry = (pos){3,4 ,0};
     cube[berry.x][berry.y][berry.z] = berry_color;
 
 }
@@ -213,12 +220,14 @@ int main(){
     volatile int* switches = (volatile int*) 0x04000010 ;
     seed = (*switches);
     
-    while(snake_check()){
+    while(1){
         poll_buttons();
 
         if(timeoutcount >= 12){
             snake_upd();
             timeoutcount = 0;
+            if(!snake_check())
+                break;
         }
         
     }
