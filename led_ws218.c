@@ -5,7 +5,7 @@ extern void print_dec(unsigned int);  //these are here just for testing
 
 #define BRIGHT 255
 #define GPIO_address 0x040000E0 //gpio no1
-#define wait 8  //how long to wait with the signal ~.4us because we initialise timer once, I will just double this value for longer wait period
+#define wait 8 //how long to wait with the signal ~.4us because we initialise timer once, I will just double this value for longer wait period
                 //11 instead of 12 cuz clock is one cycle more
                 //we aim for 8 instructions, so that we have a lot of space for overshoot
 
@@ -18,13 +18,13 @@ volatile int* gpio1_data = (volatile int*) GPIO_address;
 volatile uint8_t* flagbit = (volatile uint8_t*) 0x04000020;
 
 //they are written in macros to not mess with timings
-#define pin_high() ((*gpio1_data) = 0x1)   //this is clobbering other pins, I know. I will care with testing
+#define pin_high() ((*gpio1_data) = ((*gpio1_data) | 0x1))   //this is clobbering other pins, I know
     
-#define pin_low() ((*gpio1_data) = 0x0)  //this is clobbering other pins, I know.
+#define pin_low() ((*gpio1_data) = ((*gpio1_data) & 0xFFFFFFF0) )  //this is clobbering other pins, I know.
 
 #define flag_reset() ((*flagbit) = 0)
 
-#define wait_250() ({while(!(*flagbit)){}})   // ==while(!(*flagbit));
+#define wait_250() ({while(!((*flagbit)&1)){}})   // ==while(!(*flagbit));
 
 //how to send one singular bit, this process is very timing dependent
 
@@ -61,7 +61,7 @@ void SendBit(bool bit){
 
         pin_high();  
 
-        wait_250();  //just one cycle high
+       // wait_250();  //just one cycle high
                         
         pin_low();
 
@@ -119,13 +119,18 @@ void restore_timer(){
 
 void init_timer(void)
 {
-  volatile int* TMR1_PLow = (volatile int*) 0x04000028;
-  volatile int* TMR1_PHigh = (volatile int*) 0x0400002C;
+  volatile uint16_t* TMR1_PLow = (volatile uint16_t*) 0x04000028;
+  volatile uint16_t* TMR1_PHigh = (volatile uint16_t*) 0x0400002C;
+  volatile int* TMR1_CTRL = (volatile int*) 0x04000024; //for starting and stopping timer
+  volatile int* TMR1_STAT  = (volatile int*) 0x04000020;
+  TMR1_CTRL[0] = 0x8;
+  TMR1_STAT[0] = 0x1;
+
   int timeout = wait;
   TMR1_PLow[0] = timeout & 0xFFFF;
   TMR1_PHigh[0] = (timeout >> 16) & 0xFFFF;
 
-  volatile int* TMR1_CTRL = (volatile int*) 0x04000024; //for starting and stopping timer
+
   TMR1_CTRL[0] = 0x6;  //start the timer in continous mode for better accuracy
   return;
 }
@@ -157,20 +162,20 @@ void colour_it(color BUFFER[5][5][5])
         }
     }
 
-    //send it
     for (int i = 0; i < 125; i++) {
         singleLed_sendColor(BUFFER2[i][0], BUFFER2[i][1], BUFFER2[i][2]);
     }
 
-//we can delay as long as we want >50us here, the leds will reset,  but for lowest we did experimentally found 140 clock counts
-    int cnt = 0;
-    while (cnt < 143)  //wait enough so it resets reliably
+    //we can delay as long as we want >50us here, the leds will reset,  but for lowest we did experimentally found 140 clock counts
+    volatile int cnt = 0;
+    pin_low();
+    while (cnt < 500) //wait enough so it resets reliably
     {
-        while(!(TMR1_flag[0] & 0x1));   
-        TMR1_flag[0] = 0;
+        wait_250();
+        flag_reset();
         cnt++;
     }
-
+    
     restore_timer();
 }
 
@@ -178,6 +183,9 @@ void init_gpio(void)
 {
     volatile int* GPIO_dir = (volatile int*) (GPIO_address + 0x4);
     GPIO_dir[0] = GPIO_dir[0] | 0x1; //set it as output 
+
+    pin_low();
+    pin_low();
 
 }
 
