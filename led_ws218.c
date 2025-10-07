@@ -64,19 +64,17 @@ __attribute__((always_inline)) inline void SendBit(char bit){
         flag_reset();   //this is sure that inside the bits, we are actually in sync, not just seeing, oh the flagh is 1 and the timer is whenever
         wait_250();  //this actually is tripped when the timer flag is set, thanks to setup
         flag_reset(); 
-        wait_250();  //this actually is tripped when the timer flag is set, thanks to setup
-        flag_reset();
 
         pin_low();   //this is to make cache work
-
         pin_low();
-        
+        pin_low();  
+
         pin_high();
-        
+        asm volatile("nop");
         pin_low();
 
-        wait_250();
-        flag_reset();
+        //wait_250();
+        //flag_reset();
 
     }
 }
@@ -145,7 +143,7 @@ void init_timer(void)
   return;
 }
 
-void colour_it(color BUFFER[5][5][5])
+void colour_it(volatile color BUFFER[5][5][5])
 {
     //save previous timeout, and start our own timer
     save_timer();

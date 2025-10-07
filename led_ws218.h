@@ -7,4 +7,4 @@ typedef struct {
     uint8_t blue;
 } color;
 
-void colour_it(color BUFFER[5][5][5]);
+void colour_it(volatile color BUFFER[5][5][5]);

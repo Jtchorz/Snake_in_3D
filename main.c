@@ -26,7 +26,7 @@ typedef struct {
 
 //global variables:
 volatile int timeoutcount = 0;
-color cube[5][5][5];
+volatile color cube[5][5][5];
 pos snake[125];
 int snake_len;
 pos berry;
