@@ -13,7 +13,7 @@ void init_timer();
 
 volatile int* TMR1_flag = (volatile int*) 0x04000020;  //for checking if timer did done
 
-volatile int* gpio1_data = (volatile int*) GPIO_address;
+volatile int* const gpio1_data = (volatile int*) GPIO_address;
 
 volatile uint8_t* flagbit = (volatile uint8_t*) 0x04000020;
 
@@ -24,7 +24,7 @@ volatile uint8_t* flagbit = (volatile uint8_t*) 0x04000020;
 
 #define flag_reset() ((*flagbit) = 0)
 
-#define wait_250() ({while(!((*flagbit)&1)){}})   // ==while(!(*flagbit));
+#define wait_250() ({while(!((*flagbit)&1)){;}})   // ==while(!(*flagbit));
 
 int gpio_low;
 int gpio_high;
@@ -66,7 +66,7 @@ __attribute__((always_inline)) inline void SendBit(char bit){
         pin_high();
         pin_low();
         //this is needed to run -O3
-          wait_250();  //this actually is tripped when the timer flag is set, thanks to setup
+        wait_250();  //this actually is tripped when the timer flag is set, thanks to setup
         flag_reset();
     }
 }
@@ -76,7 +76,6 @@ void singleLed_sendColor(char Red, char Green,char Blue){
     pin_low();
     wait_250();  //this also helps cache work somehow
     flag_reset();
-    
 
     for (int i = 7; i >= 0; i--) {
         SendBit((Green >> i) & 1);
@@ -85,6 +84,7 @@ void singleLed_sendColor(char Red, char Green,char Blue){
     for (int i = 7; i >= 0; i--) {
         SendBit((Red >> i) & 1);
     }
+    
 
     for (int i = 7; i >= 0; i--) {
         SendBit((Blue >> i) & 1);
