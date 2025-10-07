@@ -30,15 +30,15 @@ color cube[5][5][5];
 pos snake[125];
 int snake_len;
 pos berry;
-char direction;
-int seed;
+char direction = 'f';
+unsigned int seed;
 
 //how to define colors:  (the struct is defined in led_ws218.h file) 
 color white= {1,1,1};
 color black={0,0,0};
-color snake_color={0,1,0};
-color berry_color={1,0,0};
-color head_color = {0,5,0};
+color snake_color={20,20,0};
+color berry_color={50,0,0};
+color head_color = {0,50,0};
 
 //functions:
 
@@ -61,16 +61,51 @@ void handle_interrupt(unsigned int cause){
 }
 
 void poll_buttons(){
-    volatile int* gpio1_data = (volatile int*) 0x040000E0;
-    int data = *(gpio1_data) & 0xFF;
- //   print_dec(data);
-   // print("\n");
-    direction = 'f';
+   volatile int* gpio1_data = (volatile int*)0x040000E0;
+   int data = (*(gpio1_data) & 0xFF) >> 1;
+  // print_dec(data);
+   //print("\n");
+
+
+    switch (data){
+        case 127-1:
+            if(direction != 'd')
+                direction = 'u';
+            break;
+        case 127-2:
+            if(direction != 'u')
+                direction = 'd';
+            break;
+        case 127-4:            
+            if(direction != 'l')
+                direction = 'r';
+            break;
+        case 127-8:            
+            if(direction != 'r')
+                direction = 'l';
+            break;
+        case 127-16:
+            if(direction != 'b')
+                direction = 'f';
+            break;
+        case 127-32:
+            if(direction != 'f')
+                direction = 'b';
+            break;
+        default:
+            direction = direction;
+            break;
+    };
+    
+  //  tab[0] = direction;
+   // print(tab);
+    
     //this has to change smth called dir, if the button pressed is directly opposite to dir, then discard it
     //I put this here, as snake upd does moveent, so it cannot discard, so this will validate, that there is only one button pressed, and that it is
     //one that is valid, not in the exact opposite direction of moving
     return;
 }
+
 void snake_upd(){
     pos head = snake[0];
     //figure out new head position
@@ -110,31 +145,31 @@ void snake_upd(){
     };
     //we can make it the color now, as it doesnt matter, it updates when timeout
     cube[head.x][head.y][head.z] = head_color;
-    cube[snake[0].x][snake[0].y][snake[0].z] =snake_color;
+    cube[snake[0].x][snake[0].y][snake[0].z] = snake_color;
 
     //make it just longer,we can shorten it down after we check for berry
     for(int i = snake_len; i > 0; i--)
         snake[i] = snake[i-1];
     snake[0] = head;
-    snake_len++;
-    for(int i = 0; i <= snake_len; i++){
+
+  /*  for(int i = 0; i <= snake_len; i++){
         print_dec(snake[i].x);
         print(" ");
         print_dec(snake[i].y);
         print(" ");
         print_dec(snake[i].z);
         print("\n");
-    }
+    }*/
     print("\n");
     
     if((head.x == berry.x)&&(head.y == berry.y)&&(head.z == berry.z)){
         spawn_berry();  //create a new one I assume this lights it up
-           //increase snake length
+        snake_len++;   //increase snake length
     }
-    else{
-        snake_len--;
+    else if(snake_check()){
         cube[snake[snake_len].x][snake[snake_len].y][snake[snake_len].z] = white;  //turn of the led for tail
         snake[snake_len] = (pos){0,0,0};  //zero it to be explicit
+        cube[head.x][head.y][head.z] = head_color;
         
     }
     return;
@@ -144,11 +179,18 @@ void spawn_berry(){
     for(int i = 0; i < 125; i++)
         cross_out[i] = 0;
 
-    for(int i = 0; i < snake_len; i++)
+    for(int i = 0; i < snake_len; i++){
         cross_out[snake[i].x*25+5*snake[i].y+snake[i].z] = 1;
+        print_dec(cross_out[snake[i].x*25+5*snake[i].y+snake[i].z]);
+    }
+        
 
     int random_number = 1 + (rand() % ( 125-snake_len) ) ;  //this is how many zeros we want to see
     int p = 0;   //this is the position of berry after
+    print_dec(random_number);
+    print(" ");
+    print_dec(p);
+    print("\n");
     while(random_number>0){
         random_number -= (1-cross_out[p]);
         p++;
@@ -270,6 +312,6 @@ int main(){
 
 
 int rand(){
-    seed = seed * 187240 + 94512;
-    return seed;
+    seed = (seed * 187240) + 94512;
+    return (int)(seed & 0x7FFFFFFF);
 }
