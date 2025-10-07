@@ -5,7 +5,7 @@ extern void print_dec(unsigned int);  //these are here just for testing
 
 #define BRIGHT 255
 #define GPIO_address 0x040000E0 //gpio no1
-#define wait 8 //how long to wait with the signal ~.4us because we initialise timer once, I will just double this value for longer wait period
+#define wait 6 //how long to wait with the signal ~.4us because we initialise timer once, I will just double this value for longer wait period
                 //11 instead of 12 cuz clock is one cycle more
                 //we aim for 8 instructions, so that we have a lot of space for overshoot
 
@@ -16,6 +16,7 @@ volatile int* TMR1_flag = (volatile int*) 0x04000020;  //for checking if timer d
 volatile int* const gpio1_data = (volatile int*) GPIO_address;
 
 volatile uint8_t* flagbit = (volatile uint8_t*) 0x04000020;
+volatile int flag;
 
 //they are written in macros to not mess with timings
 #define pin_high() ((*gpio1_data) = gpio_high)
@@ -31,24 +32,29 @@ int gpio_high;
 
 //how to send one singular bit, this process is very timing dependent
 
-////thi function is IMPORTANT if the timing is off stuff breaks ##################################################################################
+////this function is IMPORTANT if the timing is off stuff breaks  do not modify it, 
+// I made it work both at o3 and o0 and it is between god and me
+// ##################################################################################
 //#################################################################################################################################
 __attribute__((always_inline)) inline void SendBit(char bit){
     
   
-    if(bit){
+    if(__builtin_expect(bit, 0)){
 
         flag_reset();   //this is sure that inside the bits, we are actually in sync, not just seeing, oh the flag is 1 and the timer is whenever
         wait_250();  //this actually is tripped when the timer flag is set, thanks to setup
-        flag_reset(); 
+        
+        pin_low();
 
-        pin_high(); 
+        pin_high();
+        flag_reset(); 
         wait_250();
         flag_reset();
+        wait_250();
+        flag_reset();
+        pin_low();   
+                       //do it first, so that the gpio is set down exactly where it needs, then reset the flag, but the tmr is still running
         wait_250();   //do three cycles, so that it is ~0.750us
-
-        pin_low();                  //do it first, so that the gpio is set down exactly where it needs, then reset the flag, but the tmr is still running
-        
         flag_reset();
         //I will on purpose not wait here, as the next will take 250 at least, propably 500. so just not wait, it will be fine
     }
@@ -60,19 +66,23 @@ __attribute__((always_inline)) inline void SendBit(char bit){
         flag_reset(); 
         wait_250();  //this actually is tripped when the timer flag is set, thanks to setup
         flag_reset();
-        
-        pin_low();   //this is to make cache work
 
+        pin_low();   //this is to make cache work
+        pin_low();   //this is to make cache work
+        pin_low();   //this is to make cache work
+        
         pin_high();
+        
         pin_low();
-        //this is needed to run -O3
-        wait_250();  //this actually is tripped when the timer flag is set, thanks to setup
+
+        wait_250();
         flag_reset();
+
     }
 }
 
 
-void singleLed_sendColor(char Red, char Green,char Blue){
+__attribute__((always_inline)) inline void singleLed_sendColor(char Red, char Green,char Blue){
     pin_low();
     wait_250();  //this also helps cache work somehow
     flag_reset();

@@ -15,6 +15,7 @@ void timer_init();
 char snake_check();
 void snake_init();
 int rand();
+//void gpio_init();
 
 //structs:
 typedef struct {
