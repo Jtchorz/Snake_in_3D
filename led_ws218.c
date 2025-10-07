@@ -18,13 +18,16 @@ volatile int* gpio1_data = (volatile int*) GPIO_address;
 volatile uint8_t* flagbit = (volatile uint8_t*) 0x04000020;
 
 //they are written in macros to not mess with timings
-#define pin_high() ((*gpio1_data) = ((*gpio1_data) | 0x1))   //this is clobbering other pins, I know
+#define pin_high() ((*gpio1_data) = gpio_high)
     
-#define pin_low() ((*gpio1_data) = ((*gpio1_data) & 0xFFFFFFF0) )  //this is clobbering other pins, I know.
+#define pin_low() ((*gpio1_data) = gpio_low)
 
 #define flag_reset() ((*flagbit) = 0)
 
 #define wait_250() ({while(!((*flagbit)&1)){}})   // ==while(!(*flagbit));
+
+int gpio_low;
+int gpio_high;
 
 //how to send one singular bit, this process is very timing dependent
 
@@ -34,20 +37,15 @@ __attribute__((always_inline)) inline void SendBit(char bit){
     
   
     if(bit){
-        pin_low();
-        flag_reset();   //this is sure that inside the bits, we are actually in sync, not just seeing, oh the flagh is 1 and the timer is whenever
+
+        flag_reset();   //this is sure that inside the bits, we are actually in sync, not just seeing, oh the flag is 1 and the timer is whenever
         wait_250();  //this actually is tripped when the timer flag is set, thanks to setup
         flag_reset(); 
-        wait_250();  //this actually is tripped when the timer flag is set, thanks to setup
-        flag_reset();
 
         pin_high(); 
-
         wait_250();
         flag_reset();
         wait_250();   //do three cycles, so that it is ~0.750us
-        flag_reset();                            
-        wait_250();
 
         pin_low();                  //do it first, so that the gpio is set down exactly where it needs, then reset the flag, but the tmr is still running
         
@@ -62,17 +60,23 @@ __attribute__((always_inline)) inline void SendBit(char bit){
         flag_reset(); 
         wait_250();  //this actually is tripped when the timer flag is set, thanks to setup
         flag_reset();
-        pin_low();
-        pin_high();  
+        
+        pin_low();   //this is to make cache work
 
-       // wait_250();  //just one cycle high
-                        
+        pin_high();
         pin_low();
+        //this is needed to run -O3
+          wait_250();  //this actually is tripped when the timer flag is set, thanks to setup
+        flag_reset();
     }
 }
 
 
 void singleLed_sendColor(char Red, char Green,char Blue){
+    pin_low();
+    wait_250();  //this also helps cache work somehow
+    flag_reset();
+    
 
     for (int i = 7; i >= 0; i--) {
         SendBit((Green >> i) & 1);
@@ -157,7 +161,8 @@ void colour_it(color BUFFER[5][5][5])
             }
         }
     }
-    
+    gpio_high = ((*gpio1_data) | 0x1);
+    gpio_low = ((*gpio1_data) & 0xFFFFFFF0);
 
     for (int i = 0; i < 125; i++) {
         singleLed_sendColor(BUFFER2[i][0], BUFFER2[i][1], BUFFER2[i][2]);
@@ -166,13 +171,12 @@ void colour_it(color BUFFER[5][5][5])
     //we can delay as long as we want >50us here, the leds will reset,  but for lowest we did experimentally found 140 clock counts
     volatile int cnt = 0;
     
-    while (cnt < 500) //wait enough so it resets reliably
+    while (cnt < 100) //wait enough so it resets reliably
     {
         wait_250();
         flag_reset();
         cnt++;
     }
-    
     restore_timer();
 }
 
