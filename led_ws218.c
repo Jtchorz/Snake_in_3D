@@ -68,8 +68,7 @@ __attribute__((always_inline)) inline void SendBit(char bit){
         flag_reset();
 
         pin_low();   //this is to make cache work
-        pin_low();   //this is to make cache work
-        pin_low();   //this is to make cache work
+            
         
         pin_high();
         

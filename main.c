@@ -15,7 +15,7 @@ void timer_init();
 char snake_check();
 void snake_init();
 int rand();
-//void gpio_init();
+void gpio_init();
 
 //structs:
 typedef struct {
@@ -61,6 +61,10 @@ void handle_interrupt(unsigned int cause){
 }
 
 void poll_buttons(){
+    volatile int* gpio1_data = (volatile int*) 0x040000E0;
+    int data = *(gpio1_data) & 0xFF;
+ //   print_dec(data);
+   // print("\n");
     direction = 'f';
     //this has to change smth called dir, if the button pressed is directly opposite to dir, then discard it
     //I put this here, as snake upd does moveent, so it cannot discard, so this will validate, that there is only one button pressed, and that it is
@@ -112,14 +116,26 @@ void snake_upd(){
     for(int i = snake_len; i > 0; i--)
         snake[i] = snake[i-1];
     snake[0] = head;
+    snake_len++;
+    for(int i = 0; i <= snake_len; i++){
+        print_dec(snake[i].x);
+        print(" ");
+        print_dec(snake[i].y);
+        print(" ");
+        print_dec(snake[i].z);
+        print("\n");
+    }
+    print("\n");
     
     if((head.x == berry.x)&&(head.y == berry.y)&&(head.z == berry.z)){
         spawn_berry();  //create a new one I assume this lights it up
-        snake_len++;   //increase snake length
+           //increase snake length
     }
     else{
+        snake_len--;
         cube[snake[snake_len].x][snake[snake_len].y][snake[snake_len].z] = white;  //turn of the led for tail
         snake[snake_len] = (pos){0,0,0};  //zero it to be explicit
+        
     }
     return;
 }
@@ -174,6 +190,7 @@ void init(){
     snake_init();
     timer_init();
     enable_interrupts();
+    gpio_init();
     return;
 }
 
@@ -211,7 +228,11 @@ void timer_init(){
 }
 
 
-
+void gpio_init(){
+    volatile int* gpio1_dir = (volatile int*) 0x040000E4;
+    *gpio1_dir = (*gpio1_dir) & 0xFFFFFF81;
+    return;   
+}
 
 
 int main(){
