@@ -301,6 +301,14 @@ void timer_init(){
 void gpio_init(){
     volatile int* gpio1_dir = (volatile int*) 0x040000E4;
     *gpio1_dir = (*gpio1_dir) & 0xFFFFFF81;
+    *gpio1_dir = (*gpio1_dir) | 0x1;
+
+    volatile int* gpio1_data = (volatile int*) 0x040000E0;
+
+    *gpio1_data = ((*gpio1_data) | 0x1);
+
+
+
     return;   
 }
 
