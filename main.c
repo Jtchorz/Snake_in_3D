@@ -25,13 +25,15 @@ typedef struct {
 } pos;
 
 //global variables:
-volatile int timeoutcount = 0;
+volatile int timeoutcount;
 volatile color cube[5][5][5];
 pos snake[125];
 int snake_len;
 pos berry;
-char direction = 'f';
+char direction;
 unsigned int seed;
+int score;
+volatile int reset_flag;
 
 //how to define colors:  (the struct is defined in led_ws218.h file) 
 color white= {1,1,1};
@@ -63,8 +65,8 @@ void handle_interrupt(unsigned int cause){
 void poll_buttons(){
    volatile int* gpio1_data = (volatile int*)0x040000E0;
    int data = (*(gpio1_data) & 0xFF) >> 1;
-  // print_dec(data);
-   //print("\n");
+//   print_dec(data);
+  // print("\n");
 
 
     switch (data){
@@ -91,6 +93,10 @@ void poll_buttons(){
         case 127-32:
             if(direction != 'f')
                 direction = 'b';
+            break;
+        case 127-64:
+            //print("aaa");
+            reset_flag = 1;
             break;
         default:
             direction = direction;
@@ -160,11 +166,15 @@ void snake_upd(){
         print_dec(snake[i].z);
         print("\n");
     }*/
-    print("\n");
+  //  print("\n");
     
     if((head.x == berry.x)&&(head.y == berry.y)&&(head.z == berry.z)){
         spawn_berry();  //create a new one I assume this lights it up
         snake_len++;   //increase snake length
+        score++;
+        print("score: ");
+        print_dec(score);
+        print("\n");
     }
     else if(snake_check()){
         cube[snake[snake_len].x][snake[snake_len].y][snake[snake_len].z] = white;  //turn of the led for tail
@@ -181,26 +191,26 @@ void spawn_berry(){
 
     for(int i = 0; i < snake_len; i++){
         cross_out[snake[i].x*25+5*snake[i].y+snake[i].z] = 1;
-        print_dec(cross_out[snake[i].x*25+5*snake[i].y+snake[i].z]);
+       // print_dec(cross_out[snake[i].x*25+5*snake[i].y+snake[i].z]);
     }
         
 
     int random_number = 1 + (rand() % ( 125-snake_len) ) ;  //this is how many zeros we want to see
     int p = 0;   //this is the position of berry after
-    print_dec(random_number);
-    print(" ");
-    print_dec(p);
-    print("\n");
+  //  print_dec(random_number);
+   // print(" ");
+    //print_dec(p);
+    //print("\n");
     while(random_number>0){
         random_number -= (1-cross_out[p]);
         p++;
     }
     p--;   //correct cuz we add always
 
-    print_dec(random_number);
-    print(" ");
-    print_dec(p);
-    print("\n");
+  //  print_dec(random_number);
+   // print(" ");
+//    print_dec(p);
+  //  print("\n");
 
     berry.x = p/25;
     p %= 25;
@@ -228,28 +238,46 @@ char snake_check(){
 
 
 void init(){
+    for(int i = 0; i < 5; i++){
+        for(int j = 0; j < 5; j++){
+            for(int k = 0; k < 5; k++){
+                cube[i][j][k] = white;
+            }
+        }
+    }
+    timeoutcount = 0;
+    direction = 'f';
+    score = 0;
+    reset_flag = 0;
+
     init_led();
     snake_init();
     timer_init();
     enable_interrupts();
     gpio_init();
+
+    //seed randomness in switches
+    volatile int* switches = (volatile int*) 0x04000010 ;
+    seed = (*switches);
+
+    
     return;
 }
 
 void snake_init(){
     //head is at 0, for easier code later
-    snake_len = 3;
-   // snake[4] = (pos){0, 0, 0};
-  //  snake[3] = (pos){0, 1, 0};
-    snake[2] = (pos){0, 0, 0};
-    snake[1] = (pos){0, 1, 0};
-    snake[0] = (pos){0, 2, 0};
+    snake_len = 5;
+    snake[4] = (pos){0, 0, 0};
+    snake[3] = (pos){0, 1, 0};
+    snake[2] = (pos){0, 2, 0};
+    snake[1] = (pos){0, 3, 0};
+    snake[0] = (pos){0, 4, 0};
     //already light the leds so it cna stand for a sec
     cube[0][0][0] = snake_color;
     cube[0][1][0] = snake_color;
-    cube[0][2][0] = head_color;
-   // cube[0][3][0] = snake_color;
- //   cube[0][4][0] = head_color;
+    cube[0][2][0] = snake_color;
+    cube[0][3][0] = snake_color;
+    cube[0][4][0] = head_color;
 
     berry = (pos){3,4,0};
     cube[berry.x][berry.y][berry.z] = berry_color;
@@ -278,20 +306,17 @@ void gpio_init(){
 
 
 int main(){
-    for(int i = 0; i < 5; i++){
-        for(int j = 0; j < 5; j++){
-            for(int k = 0; k < 5; k++){
-                cube[i][j][k] = white;
-            }
-        }
-    }
+start:
+
     init();
 
-    //seed randomness in switches
-    volatile int* switches = (volatile int*) 0x04000010 ;
-    seed = (*switches);
+    timeoutcount = 0;
+
+    while(timeoutcount < 24){;}
     
-    while(1){
+    timeoutcount = 0;
+
+    while(!reset_flag){
         poll_buttons();
 
         if(timeoutcount >= 12){
@@ -302,6 +327,22 @@ int main(){
         }
         
     }
+
+    if(!reset_flag){
+        print("you lost, score: ");
+        print_dec(score);
+        print("\n");
+        while(!reset_flag)
+            poll_buttons();
+    }
+
+    print("commence reset \n");
+
+    goto start;
+    
+
+    
+
 }
 
 

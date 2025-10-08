@@ -4,8 +4,8 @@ extern void print(char *);
 extern void print_dec(unsigned int);  //these are here just for testing
 
 #define BRIGHT 255
-#define GPIO_address 0x040000E0 //gpio no1
-#define wait 6 //how long to wait with the signal ~.4us because we initialise timer once, I will just double this value for longer wait period
+#define GPIO_address 0x040000F0 //gpio no2
+#define wait 10 //how long to wait with the signal ~.4us because we initialise timer once, I will just double this value for longer wait period
                 //11 instead of 12 cuz clock is one cycle more
                 //we aim for 8 instructions, so that we have a lot of space for overshoot
 
@@ -19,9 +19,9 @@ volatile uint8_t* flagbit = (volatile uint8_t*) 0x04000020;
 volatile int flag;
 
 //they are written in macros to not mess with timings
-#define pin_high() ((*gpio1_data) = gpio_high)
+#define pin_high() ((*gpio1_data) = 1)
     
-#define pin_low() ((*gpio1_data) = gpio_low)
+#define pin_low() ((*gpio1_data) = 0)
 
 #define flag_reset() ((*flagbit) = 0)
 
@@ -29,6 +29,8 @@ volatile int flag;
 
 int gpio_low;
 int gpio_high;
+void init_gpio();
+void gpio_off();
 
 //how to send one singular bit, this process is very timing dependent
 
@@ -36,7 +38,7 @@ int gpio_high;
 // I made it work both at o3 and o0 and it is between god and me
 // ##################################################################################
 //#################################################################################################################################
-__attribute__((always_inline)) inline void SendBit(char bit){
+/*__attribute__((always_inline)) inline void SendBit(char bit){
     
   
     if(__builtin_expect(bit, 0)){
@@ -61,42 +63,124 @@ __attribute__((always_inline)) inline void SendBit(char bit){
     else
     {
         
-        flag_reset();   //this is sure that inside the bits, we are actually in sync, not just seeing, oh the flagh is 1 and the timer is whenever
-        wait_250();  //this actually is tripped when the timer flag is set, thanks to setup
+        flag_reset();   //this is to give the processor time for if shenanigans
+        wait_250();  
         flag_reset(); 
 
         pin_low();   //this is to make cache work
         pin_low();
-        pin_low();  
+        pin_low();
 
         pin_high();
         asm volatile("nop");
         pin_low();
 
-        //wait_250();
-        //flag_reset();
+        wait_250();
+        flag_reset();
 
     }
+}*/
+__attribute__((always_inline)) inline void sendone(){
+
+        pin_low();
+        flag_reset();   //this is warmup for 
+        wait_250(); 
+        flag_reset();
+
+        pin_high();
+        flag_reset(); 
+        wait_250();
+        flag_reset();
+        wait_250();
+        flag_reset();
+        
+        pin_low();   
+                       //do it first, so that the gpio is set down exactly where it needs, then reset the flag, but the tmr is still running
+        wait_250();   //do three cycles, so that it is ~0.750us
+        flag_reset();
+        wait_250();  //this makes distance between leds
+        flag_reset();
+        //I will on purpose not wait here, as the next will take 250 at least, propably 500. so just not wait, it will be fine
 }
 
+__attribute__((always_inline)) inline void sendzero(){
+
+        pin_low();
+       // asm volatile("nop");
+        flag_reset();   //this is to give the processor time for if shenanigans otherwise the 
+        wait_250();  
+        flag_reset(); 
+        wait_250();  
+        flag_reset(); 
+        
+
+        pin_low();   //this is to make cache work
+        pin_low();  //warm up cache
+        pin_low();  //warm up cache
+        pin_low();  //warm up cache
+        asm volatile("nop");
+
+        pin_high();
+        asm volatile("nop");
+        pin_low();
+
+        asm volatile("nop");
+        wait_250();
+        flag_reset();
+        wait_250();  
+        flag_reset(); 
+
+        
+
+}
 
 __attribute__((always_inline)) inline void singleLed_sendColor(char Red, char Green,char Blue){
-    pin_low();
-    wait_250();  //this also helps cache work somehow
+
+    pin_low();  //warm up cache
+    asm volatile("nop");  //prevent reordering
+    flag_reset();   //prevent a cache prediction miss
+    wait_250();  
+    flag_reset(); 
+    wait_250();  
     flag_reset();
 
     for (int i = 7; i >= 0; i--) {
-        SendBit((Green >> i) & 1);
+        if(__builtin_expect(((Green >> i) & 1), 0))
+            sendone();
+        else{
+            pin_low();  //this warms up cache
+            sendzero();
+        }
+        //SendBit((Green >> i) & 1);
     }
-
+    pin_low();
     for (int i = 7; i >= 0; i--) {
-        SendBit((Red >> i) & 1);
+        if(__builtin_expect(((Red >> i) & 1), 0))
+            sendone();
+        else{
+            pin_low();  //this warms up cache
+            sendzero();
+        }
+        //SendBit((Red >> i) & 1);
     }
     
-
+    pin_low();
     for (int i = 7; i >= 0; i--) {
-        SendBit((Blue >> i) & 1);
+        if(__builtin_expect(((Blue>> i) & 1), 0))
+            sendone();
+        else{
+            pin_low();  //this warms up cache
+            sendzero();
+        }
+        //SendBit((Blue >> i) & 1);
     }
+
+    wait_250();  //this makes distance between leds
+    flag_reset();
+    wait_250();  //this makes distance between leds
+    flag_reset();
+    wait_250();  //this makes distance between leds
+    flag_reset();
 
 }
 
@@ -172,10 +256,15 @@ void colour_it(volatile color BUFFER[5][5][5])
     gpio_high = ((*gpio1_data) | 0x1);
     gpio_low = ((*gpio1_data) & 0xFFFFFFF0);
 
-    for (int i = 0; i < 125; i++) {
+   /* for (int i = 0; i < 125; i++) {
         singleLed_sendColor(BUFFER2[i][0], BUFFER2[i][1], BUFFER2[i][2]);
     }
-
+*/
+    int i = 0;
+    do{
+        singleLed_sendColor(BUFFER2[i][0], BUFFER2[i][1], BUFFER2[i][2]);
+        i++;
+    }while(i<125);
     //we can delay as long as we want >50us here, the leds will reset,  but for lowest we did experimentally found 140 clock counts
     volatile int cnt = 0;
     
