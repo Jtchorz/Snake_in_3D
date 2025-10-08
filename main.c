@@ -31,6 +31,7 @@ pos snake[125];
 int snake_len;
 pos berry;
 char direction;
+char old_direction;
 unsigned int seed;
 int score;
 volatile int reset_flag;
@@ -40,7 +41,9 @@ color white= {1,1,1};
 color black={0,0,0};
 color snake_color={20,20,0};
 color berry_color={50,0,0};
-color head_color = {0,50,0};
+color head_color = {0,70,0};
+
+color snake_body[6] = {{40,40,0}, {25,25,0}, {17,17,0}, {8,8,0}, {4,4,0}, {1,1,0},};
 
 //functions:
 
@@ -71,27 +74,27 @@ void poll_buttons(){
 
     switch (data){
         case 127-1:
-            if(direction != 'd')
+            if(old_direction != 'd')
                 direction = 'u';
             break;
         case 127-2:
-            if(direction != 'u')
+            if(old_direction != 'u')
                 direction = 'd';
             break;
         case 127-4:            
-            if(direction != 'l')
+            if(old_direction != 'l')
                 direction = 'r';
             break;
         case 127-8:            
-            if(direction != 'r')
+            if(old_direction != 'r')
                 direction = 'l';
             break;
         case 127-16:
-            if(direction != 'b')
+            if(old_direction != 'b')
                 direction = 'f';
             break;
         case 127-32:
-            if(direction != 'f')
+            if(old_direction != 'f')
                 direction = 'b';
             break;
         case 127-64:
@@ -149,9 +152,8 @@ void snake_upd(){
                 head.x = 4;
             break;
     };
-    //we can make it the color now, as it doesnt matter, it updates when timeout
-    cube[head.x][head.y][head.z] = head_color;
-    cube[snake[0].x][snake[0].y][snake[0].z] = snake_color;
+    old_direction = direction;
+
 
     //make it just longer,we can shorten it down after we check for berry
     for(int i = snake_len; i > 0; i--)
@@ -160,18 +162,15 @@ void snake_upd(){
 
     // draw a cool gradient-y snake. I think.
     for(int i = 1; i < snake_len; i++){
-        color gradient = {}
-        if(i%16>=8){
-            gradient.red = 24;
-            gradient.green = i%8*3;
-            gradient.blue = 24-(i%8)*3;
-        }else{
-            gradient.red = 24;
-            gradient.green = 24-(i%8)*3;
-            gradient.blue = i%8*3;
-        }
+        color gradient = {};
+        gradient.red = snake_body[i%5].red;
+        gradient.green = snake_body[i%5].green;
+        gradient.blue = snake_body[i%5].blue;
+
         cube[snake[i].x][snake[i].y][snake[i].z] = gradient;
     }
+
+    cube[head.x][head.y][head.z] = head_color;
     // Hope it works. Best wishes, Marek.
 
   /*  for(int i = 0; i <= snake_len; i++){
@@ -185,8 +184,8 @@ void snake_upd(){
   //  print("\n");
     
     if((head.x == berry.x)&&(head.y == berry.y)&&(head.z == berry.z)){
+        snake_len++;           //increase snake length
         spawn_berry();  //create a new one I assume this lights it up
-        snake_len++;   //increase snake length
         score++;
         print("score: ");
         print_dec(score);
@@ -195,7 +194,7 @@ void snake_upd(){
     else if(snake_check()){
         cube[snake[snake_len].x][snake[snake_len].y][snake[snake_len].z] = white;  //turn of the led for tail
         snake[snake_len] = (pos){0,0,0};  //zero it to be explicit
-        cube[head.x][head.y][head.z] = head_color;
+        cube[head.x][head.y][head.z] = head_color;  //do it again
         
     }
     return;
@@ -213,20 +212,20 @@ void spawn_berry(){
 
     int random_number = 1 + (rand() % ( 125-snake_len) ) ;  //this is how many zeros we want to see
     int p = 0;   //this is the position of berry after
-  //  print_dec(random_number);
-   // print(" ");
-    //print_dec(p);
-    //print("\n");
+    print_dec(random_number);
+    print(" ");
+    print_dec(p);
+    print("\n");
     while(random_number>0){
         random_number -= (1-cross_out[p]);
         p++;
     }
     p--;   //correct cuz we add always
 
-  //  print_dec(random_number);
-   // print(" ");
-//    print_dec(p);
-  //  print("\n");
+    print_dec(random_number);
+    print(" ");
+    print_dec(p);
+    print("\n");
 
     berry.x = p/25;
     p %= 25;
@@ -263,6 +262,7 @@ void init(){
     }
     timeoutcount = 0;
     direction = 'f';
+    old_direction = 'r';
     score = 0;
     reset_flag = 0;
 
@@ -336,9 +336,8 @@ start:
 
     timeoutcount = 0;
 
-    while(timeoutcount < 24){;}
+    while(timeoutcount < 20){;}
     
-    timeoutcount = 0;
 
     while(!reset_flag){
         poll_buttons();
