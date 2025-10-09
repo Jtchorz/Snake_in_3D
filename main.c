@@ -1,4 +1,5 @@
 //inlcusions:
+//this code was written collaboratively, the attribution is who mostly created what
 #include "dtekv-lib.h"
 #include "led_ws218.h"
 #define FPS 24
@@ -65,7 +66,7 @@ void handle_interrupt(unsigned int cause){
         return;
     
 }
-
+//writen by Stanislaw Rybak
 void poll_buttons(){
    volatile int* gpio1_data = (volatile int*)0x040000E0;
    int data = (*(gpio1_data) & 0xFF) >> 1;
@@ -116,6 +117,7 @@ void poll_buttons(){
     return;
 }
 
+//written by Stanisalw Rybak
 void snake_upd(){
     pos head = snake[0];
     //figure out new head position
@@ -199,6 +201,8 @@ void snake_upd(){
     }
     return;
 }
+
+//this was written by Stanisalw Rybak
 void spawn_berry(){
     int cross_out[125];
     for(int i = 0; i < 125; i++)
@@ -251,7 +255,7 @@ char snake_check(){
 
 
 
-
+//the code from now on was written by Jan Tchorzewski
 void init(){
     for(int i = 0; i < 5; i++){
         for(int j = 0; j < 5; j++){

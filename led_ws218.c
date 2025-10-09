@@ -1,3 +1,4 @@
+//this file was written by Jan Tchorzewski it was exaustive work and is very fragile
 #include "led_ws218.h"
 
 extern void print(char *);
