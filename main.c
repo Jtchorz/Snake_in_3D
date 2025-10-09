@@ -29,6 +29,7 @@ volatile int timeoutcount;
 volatile color cube[5][5][5];
 pos snake[125];
 int snake_len;
+int highscore = 0;
 pos berry;
 char direction;
 char old_direction;
@@ -212,20 +213,20 @@ void spawn_berry(){
 
     int random_number = 1 + (rand() % ( 125-snake_len) ) ;  //this is how many zeros we want to see
     int p = 0;   //this is the position of berry after
-    print_dec(random_number);
-    print(" ");
-    print_dec(p);
-    print("\n");
+  //  print_dec(random_number);
+    //print(" ");
+    //print_dec(p);
+    //print("\n");
     while(random_number>0){
         random_number -= (1-cross_out[p]);
         p++;
     }
     p--;   //correct cuz we add always
 
-    print_dec(random_number);
-    print(" ");
-    print_dec(p);
-    print("\n");
+   // print_dec(random_number);
+    //print(" ");
+    //print_dec(p);
+    //print("\n");
 
     berry.x = p/25;
     p %= 25;
@@ -330,7 +331,55 @@ void gpio_init(){
 
 
 int main(){
+/*unsigned int mcycle, minstret, mhpmcounter3, mhpmcounter4, mhpmcounter5, mhpmcounter6, mhpmcounter7, mhpmcounter8, mhpmcounter9;
+asm volatile ("csrw mcycle, x0");
+asm volatile ("csrw minstret, x0");
+asm volatile ("csrw mhpmcounter3, x0");
+asm volatile ("csrw mhpmcounter4, x0");
+asm volatile ("csrw mhpmcounter5, x0");
+asm volatile ("csrw mhpmcounter6, x0");
+asm volatile ("csrw mhpmcounter7, x0");
+asm volatile ("csrw mhpmcounter8, x0");
+asm volatile ("csrw mhpmcounter9, x0");*/
 start:
+  /*  asm("csrr %0, mcycle" : "=r"(mcycle));
+    asm("csrr %0, minstret" : "=r"(minstret));
+    asm("csrr %0, mhpmcounter3" : "=r"(mhpmcounter3));
+    asm("csrr %0, mhpmcounter4" : "=r"(mhpmcounter4));
+    asm("csrr %0, mhpmcounter5" : "=r"(mhpmcounter5));
+    asm("csrr %0, mhpmcounter6" : "=r"(mhpmcounter6));
+    asm("csrr %0, mhpmcounter7" : "=r"(mhpmcounter7));
+    asm("csrr %0, mhpmcounter8" : "=r"(mhpmcounter8));
+    asm("csrr %0, mhpmcounter9" : "=r"(mhpmcounter9));
+    print("\nThe indicators are as follows:\n");
+    print("mcycle: ");
+    print_dec(mcycle);
+    print("\n");
+    print("minstret: ");
+    print_dec(minstret);
+    print("\n");
+    print("mhmpcounter3: ");
+    print_dec(mhpmcounter3);
+    print("\n");
+    print("mhmpcounter4: ");
+    print_dec(mhpmcounter4);
+    print("\n");
+    print("mhmpcounter5: ");
+    print_dec(mhpmcounter5);
+    print("\n");
+    print("mhmpcounter6: ");
+    print_dec(mhpmcounter6);
+    print("\n");
+    print("mhmpcounter7: ");
+    print_dec(mhpmcounter7);
+    print("\n");
+    print("mhmpcounter8: ");
+    print_dec(mhpmcounter8);
+    print("\n");
+    print("mhmpcounter9: ");
+    print_dec(mhpmcounter9);
+    print("\n");*/
+
 
     init();
 
@@ -352,9 +401,18 @@ start:
     }
 
     if(!reset_flag){
-        print("you lost, score: ");
+        print("\nyou lost, score: ");
         print_dec(score);
         print("\n");
+        print("current highscore: ");
+        print_dec(highscore);
+        print("\n");
+        if(highscore<score){
+            highscore = score;
+            print("You got the new highscore! \n new highscore: ");
+            print_dec(highscore);
+            print("\n");
+        }
         while(!reset_flag)
             poll_buttons();
     }

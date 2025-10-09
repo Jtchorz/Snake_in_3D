@@ -136,6 +136,10 @@ __attribute__((always_inline)) inline void singleLed_sendColor(char Red, char Gr
 
     pin_low();  //warm up cache
     asm volatile("nop");  //prevent reordering
+    wait_250();
+        flag_reset();
+    wait_250();
+        flag_reset();
 
     for (int i = 7; i >= 0; i--) {
         if(__builtin_expect(((Green >> i) & 1), 0))
