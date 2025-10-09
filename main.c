@@ -409,7 +409,7 @@ start:
         print("\n");
         if(highscore<score){
             highscore = score;
-            print("You got the new highscore! \n new highscore: ");
+            print("You got the new highscore! \nNew highscore: ");
             print_dec(highscore);
             print("\n");
         }
