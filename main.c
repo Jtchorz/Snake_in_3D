@@ -161,7 +161,7 @@ void snake_upd(){
         snake[i] = snake[i-1];
     snake[0] = head;
 
-    // draw a cool gradient-y snake. I think.
+    // add gradient to the body
     for(int i = 1; i < snake_len; i++){
         color gradient = {};
         gradient.red = snake_body[i%5].red;
@@ -172,7 +172,6 @@ void snake_upd(){
     }
 
     cube[head.x][head.y][head.z] = head_color;
-    // Hope it works. Best wishes, Marek.
 
   /*  for(int i = 0; i <= snake_len; i++){
         print_dec(snake[i].x);
