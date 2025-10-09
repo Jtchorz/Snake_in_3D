@@ -80,7 +80,7 @@ void gpio_off();
 
     }
 }*/
-__attribute__((always_inline)) inline void sendone(){
+__attribute__((always_inline, aligned(32))) inline void sendone(){
 
         pin_low();
         flag_reset();   //this is warmup for 
@@ -88,8 +88,9 @@ __attribute__((always_inline)) inline void sendone(){
         flag_reset();
 
         pin_high();
+
         flag_reset(); 
-        wait_250();
+        wait_250();  //wait around 750ns when the function is already running, the first 
         flag_reset();
         wait_250();
         flag_reset();
@@ -103,7 +104,7 @@ __attribute__((always_inline)) inline void sendone(){
         //I will on purpose not wait here, as the next will take 250 at least, propably 500. so just not wait, it will be fine
 }
 
-__attribute__((always_inline)) inline void sendzero(){
+__attribute__((always_inline, aligned(32))) inline void sendzero(){
 
         pin_low();
        // asm volatile("nop");
@@ -115,11 +116,8 @@ __attribute__((always_inline)) inline void sendzero(){
         
 
         pin_low();   //this is to make cache work
-        pin_low();  //warm up cache
-        pin_low();  //warm up cache
-        pin_low();  //warm up cache
-        asm volatile("nop");
 
+        asm volatile("nop");
         pin_high();
         asm volatile("nop");
         pin_low();
@@ -138,40 +136,32 @@ __attribute__((always_inline)) inline void singleLed_sendColor(char Red, char Gr
 
     pin_low();  //warm up cache
     asm volatile("nop");  //prevent reordering
-    flag_reset();   //prevent a cache prediction miss
-    wait_250();  
-    flag_reset(); 
-    wait_250();  
-    flag_reset();
-    flag_reset();   //prevent a cache prediction miss
-    
 
     for (int i = 7; i >= 0; i--) {
         if(__builtin_expect(((Green >> i) & 1), 0))
             sendone();
         else{
-            pin_low();  //this warms up cache
             sendzero();
         }
         //SendBit((Green >> i) & 1);
     }
     pin_low();
+    asm volatile("nop");  //prevent reordering
     for (int i = 7; i >= 0; i--) {
         if(__builtin_expect(((Red >> i) & 1), 0))
             sendone();
         else{
-            pin_low();  //this warms up cache
             sendzero();
         }
         //SendBit((Red >> i) & 1);
     }
     
     pin_low();
+    asm volatile("nop");  //prevent reordering
     for (int i = 7; i >= 0; i--) {
         if(__builtin_expect(((Blue>> i) & 1), 0))
             sendone();
         else{
-            pin_low();  //this warms up cache
             sendzero();
         }
         //SendBit((Blue >> i) & 1);
