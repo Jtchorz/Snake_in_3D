@@ -1,6 +1,10 @@
 # Snake_in_3D
 Snake on a 3D led cube made from WS218B leds, steered via buttons on gpio.
 
+Cube we built for this project, we also designed andcreated a controller. All drivers, and all electronics are an original design
+
+[![Watch the video](https://raw.githubusercontent.com/jtchorz/Snake_in_3D/main/VideoCapture_20260115-160215.jpg)](https://raw.githubusercontent.com/jtchorz/Snake_in_3D/main/20251003_224024_2.mp4)
+
 This is a copy of readme.txt:
 
 The code should be compiled using the make command without any additional arguments. The generated main.bin file should be run using the dtekv-run
